@@ -1,181 +1,245 @@
 // ============================================
-// Exterior — Pool, Trees, Bushes, Garden, Lamps
+// Exterior — Ground, Road, Trees, Fence, Car
+// Ported from gta-house reference design
 // ============================================
 
 import * as THREE from 'three';
-import { MaterialFactory } from '../utils/MaterialFactory.js';
-import { GeometryFactory } from '../utils/GeometryFactory.js';
 import { HOUSE } from '../config.js';
+import { createSportsCar } from '../utils/CarFactory.js';
 
 export function createExterior(scene) {
   const group = new THREE.Group();
   group.name = 'exterior';
-  
-  const halfW = HOUSE.width / 2;
-  const halfD = HOUSE.depth / 2;
 
-  // ===== SWIMMING POOL =====
-  const poolW = 10;
-  const poolD = 5;
-  const poolDepth = 1.5;
-  const poolX = 0;
-  const poolZ = -halfD - 8;
+  // ---- Helper ----
+  function box(w, h, d, color, x, y, z, opts = {}) {
+    const mat = new THREE.MeshLambertMaterial({ color });
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    mesh.position.set(x, y, z);
+    mesh.castShadow = opts.cast !== false;
+    mesh.receiveShadow = opts.recv !== false;
+    group.add(mesh);
+    return mesh;
+  }
 
-  // Pool basin
-  const poolBasinMat = new THREE.MeshStandardMaterial({ color: 0x1a4a7a, roughness: 0.3 });
-  
-  // Floor
-  const poolFloor = new THREE.Mesh(new THREE.BoxGeometry(poolW, 0.1, poolD), poolBasinMat);
-  poolFloor.position.set(poolX, -poolDepth, poolZ);
-  group.add(poolFloor);
+  function planeFloor(w, h, color, x, y, z) {
+    const mat = new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    mesh.position.set(x, y, z);
+    mesh.rotation.x = -Math.PI / 2;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    return mesh;
+  }
 
-  // Walls
-  const pw1 = new THREE.Mesh(new THREE.BoxGeometry(poolW, poolDepth, 0.15), poolBasinMat);
-  pw1.position.set(poolX, -poolDepth / 2, poolZ - poolD / 2);
-  group.add(pw1);
-  const pw2 = new THREE.Mesh(new THREE.BoxGeometry(poolW, poolDepth, 0.15), poolBasinMat);
-  pw2.position.set(poolX, -poolDepth / 2, poolZ + poolD / 2);
-  group.add(pw2);
-  const pw3 = new THREE.Mesh(new THREE.BoxGeometry(0.15, poolDepth, poolD), poolBasinMat);
-  pw3.position.set(poolX - poolW / 2, -poolDepth / 2, poolZ);
-  group.add(pw3);
-  const pw4 = new THREE.Mesh(new THREE.BoxGeometry(0.15, poolDepth, poolD), poolBasinMat);
-  pw4.position.set(poolX + poolW / 2, -poolDepth / 2, poolZ);
-  group.add(pw4);
+  // =============================================
+  // GROUND & ROAD
+  // =============================================
+  planeFloor(80, 80, 0x4a7c3f, 0, -0.05, 0); // grass (lowered so road sits on top)
+  box(24, 0.06, 6, 0xC8C0A8, 0, -0.02, 9.2, { cast: false }); // driveway
+  box(80, 0.05, 7, 0x111111, 0, -0.03, 15, { cast: false }); // road (black)
+  for (let i = -35; i < 35; i += 5) {
+    box(2.5, 0.06, 0.2, 0xFFFF00, i, -0.02, 15, { cast: false }); // road markings
+  }
+  box(5.5, 0.05, 8, 0xAAAAAA, -7.5, -0.025, 7.4, { cast: false }); // sidewalk
+  box(2, 0.05, 4.6, 0xC0B8A0, 0, -0.02, 7.7, { cast: false }); // front walkway
 
-  // Water surface
-  const waterGeo = new THREE.PlaneGeometry(poolW - 0.3, poolD - 0.3);
-  const waterMat = MaterialFactory.poolWater();
-  const water = new THREE.Mesh(waterGeo, waterMat);
-  water.rotation.x = -Math.PI / 2;
-  water.position.set(poolX, -0.1, poolZ);
-  water.userData.isWater = true;
-  group.add(water);
+  // =============================================
+  // PALM TREES
+  // =============================================
+  function palmTree(x, z) {
+    // Trunk
+    const trunkGeo = new THREE.CylinderGeometry(0.12, 0.18, 4, 8);
+    const trunkMat = new THREE.MeshLambertMaterial({ color: 0x8B6914 });
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.set(x, 2, z);
+    trunk.castShadow = true;
+    group.add(trunk);
 
-  // Pool edge/coping
-  const copingMat = new THREE.MeshStandardMaterial({ color: 0xe0d8c8, roughness: 0.4 });
-  const copingW = 0.4;
-  // North
-  group.add(makeBox(poolX, 0.05, poolZ - poolD / 2 - copingW / 2, poolW + copingW * 2, 0.1, copingW, copingMat));
-  // South
-  group.add(makeBox(poolX, 0.05, poolZ + poolD / 2 + copingW / 2, poolW + copingW * 2, 0.1, copingW, copingMat));
-  // West
-  group.add(makeBox(poolX - poolW / 2 - copingW / 2, 0.05, poolZ, copingW, 0.1, poolD, copingMat));
-  // East
-  group.add(makeBox(poolX + poolW / 2 + copingW / 2, 0.05, poolZ, copingW, 0.1, poolD, copingMat));
-
-  // Pool underwater lights
-  [0x00aaff, 0x0088ff, 0x00ccff].forEach((color, i) => {
-    const pLight = new THREE.PointLight(color, 0.6, 8, 2);
-    pLight.position.set(poolX - 3 + i * 3, -1, poolZ);
-    group.add(pLight);
-  });
-
-  // ===== TREES (12) =====
-  const treePositions = [];
-  // Garden trees around the property
-  for (let i = 0; i < 12; i++) {
-    let tx, tz;
-    let attempts = 0;
-    do {
-      const angle = Math.random() * Math.PI * 2;
-      const dist = 20 + Math.random() * 40;
-      tx = Math.cos(angle) * dist;
-      tz = Math.sin(angle) * dist;
-      attempts++;
-    } while (
-      attempts < 50 &&
-      ((Math.abs(tx) < halfW + 3 && Math.abs(tz) < halfD + 3) || // Inside house
-       (tx > 28 && tx < 42) || // On road
-       (Math.abs(tx - poolX) < poolW && Math.abs(tz - poolZ) < poolD + 2)) // In pool
-    );
-    
-    if (attempts < 50) {
-      const scale = 0.8 + Math.random() * 0.6;
-      const tree = GeometryFactory.createTree(tx, tz, scale);
-      group.add(tree);
-      treePositions.push({ x: tx, z: tz });
+    // Fronds
+    for (let i = 0; i < 7; i++) {
+      const a = i * (Math.PI * 2 / 7);
+      const fg = new THREE.CylinderGeometry(0.04, 0.06, 2.3, 5);
+      const fm = new THREE.MeshLambertMaterial({ color: 0x2D6A1A });
+      const fr = new THREE.Mesh(fg, fm);
+      fr.position.set(x + Math.cos(a) * 0.8, 4.4 + Math.sin(a * 0.5) * 0.3, z + Math.sin(a) * 0.8);
+      fr.rotation.z = Math.cos(a) * 0.7;
+      fr.rotation.x = Math.sin(a) * 0.7;
+      fr.castShadow = true;
+      group.add(fr);
     }
+
+    // Top canopy
+    const top = new THREE.Mesh(
+      new THREE.SphereGeometry(0.6, 6, 4),
+      new THREE.MeshLambertMaterial({ color: 0x228B22 })
+    );
+    top.scale.y = 0.5;
+    top.position.set(x, 4.7, z);
+    group.add(top);
   }
 
-  // ===== BUSHES (15) =====
-  for (let i = 0; i < 15; i++) {
-    let bx, bz;
-    let attempts = 0;
-    do {
-      // Cluster bushes near house and paths
-      if (Math.random() < 0.5) {
-        // Near house perimeter
-        const side = Math.floor(Math.random() * 4);
-        switch (side) {
-          case 0: bx = -halfW - 1 - Math.random() * 3; bz = (Math.random() - 0.5) * HOUSE.depth; break;
-          case 1: bx = halfW + 1 + Math.random() * 3; bz = (Math.random() - 0.5) * HOUSE.depth; break;
-          case 2: bx = (Math.random() - 0.5) * HOUSE.width; bz = -halfD - 2 - Math.random() * 4; break;
-          case 3: bx = (Math.random() - 0.5) * HOUSE.width; bz = halfD + 2 + Math.random() * 4; break;
-        }
-      } else {
-        bx = (Math.random() - 0.5) * 60;
-        bz = (Math.random() - 0.5) * 60;
-      }
-      attempts++;
-    } while (
-      attempts < 30 &&
-      ((Math.abs(bx) < halfW + 1 && Math.abs(bz) < halfD + 1) || 
-       (bx > 28 && bx < 42) ||
-       (Math.abs(bx) < 4 && bz > -18 && bz < -11)) // Avoid front porch/entrance
-    );
+  palmTree(-13, 7);
+  palmTree(9, 6);
+  palmTree(-10, -4);
+
+  // =============================================
+  // FENCE
+  // =============================================
+  for (let i = -11; i <= 11; i += 1.3) {
+    if (Math.abs(i) < 2.2) continue; // gap for front path
+    box(0.08, 1.1, 0.08, 0xF5F0E0, i, 0.55, 10.3, { cast: false });
+  }
+
+  // =============================================
+  // PARKED CAR (OUTSIDE)
+  // =============================================
+  const carGrp = createSportsCar(0xCC2200); // Sleek Red Sports Car
+  carGrp.position.set(-7.5, 0, 7.5); // Beside driveway, moved back to avoid clipping the fence
+  carGrp.rotation.y = Math.PI / 2; // Facing the road
+  group.add(carGrp);
+
+  // =============================================
+  // ROAD PROPS & SCENERY
+  // =============================================
+  function createStreetLight(x, z) {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.15, 6, 8), new THREE.MeshLambertMaterial({ color: 0x444444 }));
+    pole.position.set(x, 3, z);
+    pole.castShadow = true;
+    group.add(pole);
+
+    const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 1.5, 8), new THREE.MeshLambertMaterial({ color: 0x444444 }));
+    arm.position.set(x, 5.8, z + 0.6);
+    arm.rotation.x = Math.PI / 2;
+    group.add(arm);
+
+    const fixture = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 0.5), new THREE.MeshLambertMaterial({ color: 0x222222 }));
+    fixture.position.set(x, 5.8, z + 1.2);
+    group.add(fixture);
+
+    const light = new THREE.PointLight(0xFFF4D6, 0.8, 15);
+    light.position.set(x, 5.6, z + 1.2);
+    light.castShadow = false; // Disabled for huge performance boost
+    group.add(light);
+  }
+
+  function createTrafficCone(x, z) {
+    const cone = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.6, 12), new THREE.MeshLambertMaterial({ color: 0xFF5500 }));
+    cone.position.set(x, 0.3, z);
+    cone.castShadow = true;
+    group.add(cone);
     
-    if (attempts < 30) {
-      const scale = 0.6 + Math.random() * 0.8;
-      group.add(GeometryFactory.createBush(bx, bz, scale));
+    // white stripe
+    const stripe = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.15, 0.15, 12), new THREE.MeshBasicMaterial({ color: 0xFFFFFF }));
+    stripe.position.set(x, 0.4, z);
+    group.add(stripe);
+  }
+
+  function createBusStop(x, z) {
+    const shelterMat = new THREE.MeshLambertMaterial({ color: 0x2A3441 });
+    const glassMat = new THREE.MeshLambertMaterial({ color: 0x88CCEE, transparent: true, opacity: 0.4 });
+    
+    // Back glass
+    const back = new THREE.Mesh(new THREE.BoxGeometry(3, 2.5, 0.1), glassMat);
+    back.position.set(x, 1.25, z);
+    group.add(back);
+
+    // Roof
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.1, 1.5), shelterMat);
+    roof.position.set(x, 2.55, z + 0.7);
+    group.add(roof);
+
+    // Poles
+    const p1 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.5), shelterMat);
+    p1.position.set(x - 1.5, 1.25, z + 1.4);
+    group.add(p1);
+    const p2 = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 2.5), shelterMat);
+    p2.position.set(x + 1.5, 1.25, z + 1.4);
+    group.add(p2);
+
+    // Bench
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(2, 0.1, 0.5), new THREE.MeshLambertMaterial({ color: 0x8B5A2B }));
+    bench.position.set(x, 0.5, z + 0.3);
+    bench.castShadow = true;
+    group.add(bench);
+    
+    const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.4), new THREE.MeshLambertMaterial({ color: 0x222222 }));
+    leg1.position.set(x - 0.8, 0.25, z + 0.3);
+    group.add(leg1);
+    
+    const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.4), new THREE.MeshLambertMaterial({ color: 0x222222 }));
+    leg2.position.set(x + 0.8, 0.25, z + 0.3);
+    group.add(leg2);
+  }
+
+  function createPark(x, z) {
+    // Park base path
+    box(10, 0.05, 8, 0xC8C0A8, x, -0.02, z, { cast: false });
+    
+    // Fountain
+    const fBase = new THREE.Mesh(new THREE.CylinderGeometry(2, 2, 0.4, 16), new THREE.MeshLambertMaterial({ color: 0xD0C8B0 }));
+    fBase.position.set(x, 0.2, z);
+    group.add(fBase);
+    
+    const fWater = new THREE.Mesh(new THREE.CylinderGeometry(1.8, 1.8, 0.45, 16), new THREE.MeshLambertMaterial({ color: 0x44AAFF, transparent: true, opacity: 0.8 }));
+    fWater.position.set(x, 0.22, z);
+    group.add(fWater);
+    
+    const fCenter = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 1.2, 8), new THREE.MeshLambertMaterial({ color: 0xAAAAAA }));
+    fCenter.position.set(x, 0.6, z);
+    group.add(fCenter);
+
+    // Benches
+    const benchMat = new THREE.MeshLambertMaterial({ color: 0x8B5A2B });
+    for (let i of [-1, 1]) {
+      const bench = new THREE.Group();
+      const seat = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 0.5), benchMat);
+      seat.position.set(0, 0.5, 0);
+      seat.castShadow = true;
+      bench.add(seat);
+      const leg1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.4), new THREE.MeshLambertMaterial({ color: 0x222222 }));
+      leg1.position.set(-0.6, 0.25, 0);
+      bench.add(leg1);
+      const leg2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.5, 0.4), new THREE.MeshLambertMaterial({ color: 0x222222 }));
+      leg2.position.set(0.6, 0.25, 0);
+      bench.add(leg2);
+      
+      bench.position.set(x + (3 * i), 0, z);
+      bench.rotation.y = Math.PI / 2;
+      group.add(bench);
     }
+
+    // Additional Trees
+    palmTree(x - 4, z - 3);
+    palmTree(x + 4, z - 3);
+    palmTree(x - 4, z + 3);
+    palmTree(x + 4, z + 3);
   }
 
-  // ===== STREET LAMPS =====
-  // Along the road
-  for (let z = -40; z <= 40; z += 15) {
-    group.add(GeometryFactory.createStreetLamp(29, z));
-  }
-  // Along driveway
-  group.add(GeometryFactory.createStreetLamp(17, -6));
-  group.add(GeometryFactory.createStreetLamp(17, 6));
-  // Garden lamps
-  group.add(GeometryFactory.createStreetLamp(-halfW - 4, -halfD - 4));
-  group.add(GeometryFactory.createStreetLamp(halfW + 4, -halfD - 4));
+  // Add Streetlights
+  createStreetLight(-15, 11);
+  createStreetLight(0, 11);
+  createStreetLight(15, 11);
 
-  // ===== GARDEN FLOWERS =====
-  const flowerColors = [0xff6b6b, 0xff69b4, 0xffa500, 0xffff00, 0xda70d6, 0xff4500];
-  for (let i = 0; i < 25; i++) {
-    const fx = (Math.random() - 0.5) * 50;
-    const fz = (Math.random() - 0.5) * 50;
-    if (Math.abs(fx) < halfW + 2 && Math.abs(fz) < halfD + 2) continue;
-    if (fx > 28) continue;
-    
-    const flowerGeo = new THREE.SphereGeometry(0.08 + Math.random() * 0.06, 6, 6);
-    const flowerMat = new THREE.MeshStandardMaterial({
-      color: flowerColors[Math.floor(Math.random() * flowerColors.length)],
-      roughness: 0.8,
-    });
-    const flower = new THREE.Mesh(flowerGeo, flowerMat);
-    flower.position.set(fx, 0.1 + Math.random() * 0.1, fz);
-    group.add(flower);
-    
-    // Stem
-    const stem = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.01, 0.01, 0.15, 4),
-      new THREE.MeshStandardMaterial({ color: 0x228B22 })
-    );
-    stem.position.set(fx, 0.05, fz);
-    group.add(stem);
-  }
+  // Add Bus Stop down the road
+  createBusStop(12, 10.5);
+
+  // Add Traffic Cones near the edge
+  createTrafficCone(18, 11.5);
+  createTrafficCone(20, 12.0);
+  createTrafficCone(22, 12.0);
+
+  // Add Park Area opposite the road
+  createPark(-5, 23);
+  createPark(15, 23);
+
+  // =============================================
+  // FRONT PORCH
+  // =============================================
+  // Front porch steps
+  box(3, 0.15, 0.6, 0xC0A882, 0, 0.075, 5.9, { cast: false });
+  box(2.4, 0.15, 0.6, 0xB8A07A, 0, 0.22, 6.45, { cast: false });
 
   scene.add(group);
-  return { group, water };
-}
-
-function makeBox(x, y, z, w, h, d, mat) {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
-  mesh.position.set(x, y, z);
-  mesh.receiveShadow = true;
-  return mesh;
+  return { water: null }; // No pool in gta-house design
 }

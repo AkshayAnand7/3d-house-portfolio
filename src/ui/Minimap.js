@@ -8,7 +8,7 @@ export class Minimap {
   constructor() {
     this.canvas = document.getElementById('minimap-canvas');
     this.ctx = this.canvas ? this.canvas.getContext('2d') : null;
-    this.scale = 2.5; // pixels per world unit
+    this.scale = 5; // pixels per world unit (larger scale for smaller house)
     this.size = 180;
   }
 
@@ -23,42 +23,47 @@ export class Minimap {
     ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
     ctx.fillRect(0, 0, this.size, this.size);
 
-    // Draw house footprint
+    // Draw house footprint (centered at -2.5, 0)
     ctx.save();
     ctx.translate(cx - playerX * s, cy - playerZ * s);
 
-    // House
-    const hw = HOUSE.width * s;
-    const hd = HOUSE.depth * s;
+    // House footprint: x -10..5, z -5..5
+    const hx = -10;
+    const hz = -5;
+    const hw = 15.4;
+    const hd = 10.4;
     ctx.fillStyle = 'rgba(60, 60, 80, 0.6)';
-    ctx.fillRect(-hw / 2, -hd / 2, hw, hd);
+    ctx.fillRect(hx * s, hz * s, hw * s, hd * s);
 
     // Room divisions
     ctx.strokeStyle = 'rgba(255, 179, 102, 0.3)';
     ctx.lineWidth = 1;
     
-    // Center dividers
+    // Garage divider (x = -5)
     ctx.beginPath();
-    ctx.moveTo(0, -hd / 2);
-    ctx.lineTo(0, hd / 2);
-    ctx.stroke();
-    
-    ctx.beginPath();
-    ctx.moveTo(-hw / 2, 2 * s);
-    ctx.lineTo(hw / 2, 2 * s);
+    ctx.moveTo(-5 * s, -5 * s);
+    ctx.lineTo(-5 * s, 5 * s);
     ctx.stroke();
 
-    // Pool
-    ctx.fillStyle = 'rgba(0, 100, 200, 0.4)';
-    ctx.fillRect(-10 * s / 2, -HOUSE.depth / 2 * s - 8 * s - 5 * s / 2, 10 * s, 5 * s);
+    // Living/Kitchen divider (z = 1)
+    ctx.beginPath();
+    ctx.moveTo(-5 * s, 1 * s);
+    ctx.lineTo(5 * s, 1 * s);
+    ctx.stroke();
+
+    // Kitchen/Bedroom divider (x = 0)
+    ctx.beginPath();
+    ctx.moveTo(0, -5 * s);
+    ctx.lineTo(0, 1 * s);
+    ctx.stroke();
 
     // Road
     ctx.fillStyle = 'rgba(50, 50, 50, 0.5)';
-    ctx.fillRect(31 * s, -50 * s, 8 * s, 100 * s);
+    ctx.fillRect(-35 * s, 15 * s - 3.5 * s, 70 * s, 7 * s);
 
-    // Garage
-    ctx.fillStyle = 'rgba(60, 60, 80, 0.5)';
-    ctx.fillRect((HOUSE.width / 2 + 1.5) * s, -4 * s, 7 * s, 8 * s);
+    // Driveway
+    ctx.fillStyle = 'rgba(180, 170, 150, 0.4)';
+    ctx.fillRect(-12 * s, 6 * s, 24 * s, 6 * s);
 
     ctx.restore();
 

@@ -1,312 +1,338 @@
 // ============================================
-// House — Modern Luxury Villa Structure
+// House — GTA-Style Single-Floor House (Updated Design)
+// Ported from gta-house reference with doors, wider doorways, repositioned furniture
 // ============================================
 
 import * as THREE from 'three';
-import { MaterialFactory } from '../utils/MaterialFactory.js';
-import { HOUSE, COLORS } from '../config.js';
+import { HOUSE } from '../config.js';
+import { createSportsCar } from '../utils/CarFactory.js';
 
 export function createHouse(scene, collisionSystem) {
   const group = new THREE.Group();
   group.name = 'house';
-  
-  const W = HOUSE.width;
-  const D = HOUSE.depth;
-  const FH = HOUSE.floorHeight;
-  const WT = HOUSE.wallThickness;
-  const halfW = W / 2;
-  const halfD = D / 2;
-  
-  const wallMat = MaterialFactory.whiteWall();
-  const woodMat = MaterialFactory.wood();
-  const glassMat = MaterialFactory.glass();
-  const marbleMat = MaterialFactory.marble();
-  const roofMat = MaterialFactory.roofTop();
 
-  // Helper to create a wall segment
-  function wall(x, y, z, w, h, d, mat = wallMat) {
+  const WALL_H = HOUSE.floorHeight;
+  const DOOR_W = 1.6;
+  const DOOR_H = 2.4;
+  const wallColor = 0xD9C49A;
+  const wallColorSide = 0xCBB488;
+
+  // ---- Helpers ----
+  function box(w, h, d, color, x, y, z, opts = {}) {
+    const mat = new THREE.MeshLambertMaterial({ color });
     const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+    if (opts.ry) mesh.rotation.y = opts.ry;
     mesh.position.set(x, y, z);
+    mesh.castShadow = opts.cast !== false;
+    mesh.receiveShadow = opts.recv !== false;
+    group.add(mesh);
+    if (opts.collide !== false) {
+      const hw = w / 2, hd = d / 2;
+      collisionSystem.addWall(x - hw, z - hd, x + hw, z + hd, y - h / 2, y + h / 2);
+    }
+    return mesh;
+  }
+
+  function cyl(rt, rb, h, segs, color, x, y, z, opts = {}) {
+    const mat = new THREE.MeshLambertMaterial({ color });
+    const mesh = new THREE.Mesh(new THREE.CylinderGeometry(rt, rb, h, segs), mat);
+    mesh.position.set(x, y, z);
+    if (opts.ry) mesh.rotation.y = opts.ry;
     mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    group.add(mesh);
+    if (opts.collide) {
+      collisionSystem.addWall(x - rt - 0.05, z - rt - 0.05, x + rt + 0.05, z + rt + 0.05, y - h / 2, y + h / 2);
+    }
+    return mesh;
+  }
+
+  function planeFloor(w, h, color, x, y, z) {
+    const mat = new THREE.MeshLambertMaterial({ color, side: THREE.DoubleSide });
+    const mesh = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat);
+    mesh.position.set(x, y, z);
+    mesh.rotation.x = -Math.PI / 2;
     mesh.receiveShadow = true;
     group.add(mesh);
     return mesh;
   }
 
-  // ===== GROUND FLOOR =====
-  const gFloor = new THREE.Mesh(new THREE.BoxGeometry(W, 0.15, D), marbleMat);
-  gFloor.position.set(0, 0.075, 0);
-  gFloor.receiveShadow = true;
-  group.add(gFloor);
-  
-  // Register ground floor collision
-  collisionSystem.addFloor(-halfW, -halfD, halfW, halfD, 0.15);
-
-  // ---- Exterior walls (Ground Floor) ----
-  // Front wall (Z = -halfD)
-  wall(-halfW + 5.5, FH / 2, -halfD, 11, FH, WT); // Left solid
-  wall(halfW - 5.5, FH / 2, -halfD, 11, FH, WT);  // Right solid
-  
-  // Left side glass
-  const frontGlassLeft = new THREE.Mesh(new THREE.BoxGeometry(2, FH - 0.5, 0.05), glassMat);
-  frontGlassLeft.position.set(-3, FH / 2, -halfD);
-  group.add(frontGlassLeft);
-  
-  // Right side glass
-  const frontGlassRight = new THREE.Mesh(new THREE.BoxGeometry(2, FH - 0.5, 0.05), glassMat);
-  frontGlassRight.position.set(3, FH / 2, -halfD);
-  group.add(frontGlassRight);
-  
-  // Entrance Door Frame & Doors
-  const doorGeo = new THREE.BoxGeometry(1.9, FH - 0.5, 0.1);
-  const doorMat = MaterialFactory.woodDark();
-  
-  const doorL = new THREE.Mesh(doorGeo, doorMat);
-  doorL.position.set(-1.9, FH / 2, -halfD + 0.95);
-  doorL.rotation.y = Math.PI / 2; // Open inwards
-  doorL.castShadow = true;
-  group.add(doorL);
-  
-  const doorR = new THREE.Mesh(doorGeo, doorMat);
-  doorR.position.set(1.9, FH / 2, -halfD + 0.95);
-  doorR.rotation.y = -Math.PI / 2; // Open inwards
-  doorR.castShadow = true;
-  group.add(doorR);
-
-  // Front Awning / Overhang
-  const awning = new THREE.Mesh(new THREE.BoxGeometry(8, 0.2, 4), MaterialFactory.metal());
-  awning.position.set(0, FH, -halfD - 2);
-  awning.castShadow = true;
-  group.add(awning);
-
-  // Back wall (Z = halfD) — with wide patio opening
-  wall(-halfW + 4, FH / 2, halfD, 8, FH, WT); // Left section
-  wall(halfW - 4, FH / 2, halfD, 8, FH, WT);  // Right section
-
-  // Left wall (X = -halfW)
-  wall(-halfW, FH / 2, 0, WT, FH, D);
-
-  // Right wall (X = halfW)  
-  wall(halfW, FH / 2, 0, WT, FH, D);
-
-  // ---- Interior walls (Ground Floor) ----
-  // Central Foyer hallway walls
-  wall(-3, FH / 2, -halfD / 2 - 1, WT, FH, D / 2 - 4); // Left hallway wall
-  wall(3, FH / 2, -halfD / 2 - 1, WT, FH, D / 2 - 4);  // Right hallway wall
-  
-  // Divider between front and back rooms (Z = 2)
-  wall(-halfW / 2 - 1.5, FH / 2, 2, halfW - 3, FH, WT); // Left cross wall
-  wall(halfW / 2 + 1.5, FH / 2, 2, halfW - 3, FH, WT);  // Right cross wall
-
-  // ===== SECOND FLOOR =====
-  // Second floor slab with stairwell hole
-  const sFloorH = 0.2;
-  const sFloorY = FH;
-  
-  // Front slab (Front wall to stair start)
-  const slab1D = 11;
-  const slab1 = new THREE.Mesh(new THREE.BoxGeometry(W, sFloorH, slab1D), marbleMat);
-  slab1.position.set(0, sFloorY, -halfD + slab1D / 2);
-  slab1.receiveShadow = true; slab1.castShadow = true;
-  group.add(slab1);
-  collisionSystem.addFloor(-halfW, -halfD, halfW, -halfD + slab1D, sFloorY + sFloorH / 2);
-
-  // Left side slab (Beside stairs)
-  const slab2W = 13;
-  const slab2D = 6;
-  const slab2 = new THREE.Mesh(new THREE.BoxGeometry(slab2W, sFloorH, slab2D), marbleMat);
-  slab2.position.set(-halfW + slab2W / 2, sFloorY, -1 + slab2D / 2);
-  slab2.receiveShadow = true; slab2.castShadow = true;
-  group.add(slab2);
-  collisionSystem.addFloor(-halfW, -1, -halfW + slab2W, -1 + slab2D, sFloorY + sFloorH / 2);
-
-  // Right side slab (Beside stairs)
-  const slab3 = new THREE.Mesh(new THREE.BoxGeometry(slab2W, sFloorH, slab2D), marbleMat);
-  slab3.position.set(halfW - slab2W / 2, sFloorY, -1 + slab2D / 2);
-  slab3.receiveShadow = true; slab3.castShadow = true;
-  group.add(slab3);
-  collisionSystem.addFloor(halfW - slab2W, -1, halfW, -1 + slab2D, sFloorY + sFloorH / 2);
-
-  // Back slab (Behind stairs)
-  const slab4D = 7;
-  const slab4 = new THREE.Mesh(new THREE.BoxGeometry(W, sFloorH, slab4D), marbleMat);
-  slab4.position.set(0, sFloorY, halfD - slab4D / 2);
-  slab4.receiveShadow = true; slab4.castShadow = true;
-  group.add(slab4);
-  collisionSystem.addFloor(-halfW, halfD - slab4D, halfW, halfD, sFloorY + sFloorH / 2);
-
-  // ---- Exterior walls (Second Floor) ----
-  // Front
-  wall(-halfW + 4, FH + FH / 2, -halfD, 8, FH, WT);
-  wall(halfW - 4, FH + FH / 2, -halfD, 8, FH, WT);
-  const front2Glass = new THREE.Mesh(new THREE.BoxGeometry(W - 16, FH - 0.5, 0.05), glassMat);
-  front2Glass.position.set(0, FH + FH / 2, -halfD);
-  group.add(front2Glass);
-
-  // Back — balcony section has railing instead of wall
-  wall(-halfW + 5, FH + FH / 2, halfD, 10, FH, WT);
-  // Balcony opening
-  const balconyRail = new THREE.Mesh(new THREE.BoxGeometry(W - 10, 1.0, 0.08), glassMat);
-  balconyRail.position.set(2, FH + 0.5, halfD);
-  group.add(balconyRail);
-
-  // Left wall
-  wall(-halfW, FH + FH / 2, 0, WT, FH, D);
-
-  // Right wall
-  wall(halfW, FH + FH / 2, 0, WT, FH, D);
-
-  // ---- Interior walls (Second Floor) ----
-  // Master bedroom and Library divider
-  wall(-halfW / 2 - 1.5, FH + FH / 2, 2, halfW - 3, FH, WT);
-  // Gaming room and Balcony divider
-  wall(halfW / 2 + 1.5, FH + FH / 2, 2, halfW - 3, FH, WT);
-  // Central hallway
-  wall(-3, FH + FH / 2, halfD / 2 + 1, WT, FH, D / 2 - 2);
-
-  // ===== ROOF =====
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(W + 2, 0.2, D + 2), roofMat);
-  roof.position.set(0, FH * 2, 0);
-  roof.receiveShadow = true;
-  roof.castShadow = true;
-  group.add(roof);
-
-  // Roof overhang edge
-  const roofEdge = new THREE.Mesh(new THREE.BoxGeometry(W + 2.5, 0.08, D + 2.5), MaterialFactory.metal());
-  roofEdge.position.set(0, FH * 2 + 0.1, 0);
-  group.add(roofEdge);
-
-  // ===== WOOD ACCENT PANELS =====
-  const accentH = 1.5;
-  for (let i = 0; i < 3; i++) {
-    const accent = new THREE.Mesh(new THREE.BoxGeometry(3, accentH, 0.08), woodMat);
-    accent.position.set(-8 + i * 8, accentH / 2, -halfD - 0.1);
-    group.add(accent);
-  }
-
-  // ===== ENTRANCE PORCHES & STAIRS =====
-  // Front Porch
-  const fPorch = new THREE.Mesh(new THREE.BoxGeometry(8, 0.15, 4), marbleMat);
-  fPorch.position.set(0, 0.075, -halfD - 2);
-  fPorch.receiveShadow = true;
-  group.add(fPorch);
-  collisionSystem.addFloor(-4, -halfD - 4, 4, -halfD, 0.15);
-
-  // Front Stairs
-  for (let i = 0; i < 3; i++) {
-    const stepH = 0.05;
-    const step = new THREE.Mesh(new THREE.BoxGeometry(8, stepH, 0.5), marbleMat);
-    step.position.set(0, (2 - i) * stepH + stepH/2, -halfD - 4.25 - i * 0.5);
-    step.receiveShadow = true;
-    group.add(step);
-    
-    collisionSystem.addFloor(
-      -4, -halfD - 4.5 - i * 0.5,
-      4, -halfD - 4.0 - i * 0.5,
-      (3 - i) * stepH
+  function windowPane(x, y, z, ry, w, h) {
+    const glass = new THREE.Mesh(
+      new THREE.BoxGeometry(w, h, 0.05),
+      new THREE.MeshLambertMaterial({ color: 0x88CCEE, transparent: true, opacity: 0.55 })
     );
+    glass.rotation.y = ry || 0;
+    glass.position.set(x, y, z);
+    group.add(glass);
   }
 
-  // Back Patio
-  const patioW = 14;
-  const patioD = 6;
-  const bPatio = new THREE.Mesh(new THREE.BoxGeometry(patioW, 0.15, patioD), woodMat);
-  bPatio.position.set(0, 0.075, halfD + patioD / 2);
-  bPatio.receiveShadow = true;
-  group.add(bPatio);
-  collisionSystem.addFloor(-patioW/2, halfD, patioW/2, halfD + patioD, 0.15);
+  // Door with frame, handle, and leaf swung open
+  function buildDoor(x, y, z, ry, w, h, color) {
+    const grp = new THREE.Group();
+    const frameMat = new THREE.MeshLambertMaterial({ color: 0xEDE6D0 });
 
-  // Back Stairs
-  for (let i = 0; i < 3; i++) {
-    const stepH = 0.05;
-    const step = new THREE.Mesh(new THREE.BoxGeometry(patioW, stepH, 0.5), woodMat);
-    step.position.set(0, (2 - i) * stepH + stepH/2, halfD + patioD + 0.25 + i * 0.5);
-    step.receiveShadow = true;
-    group.add(step);
-    
-    collisionSystem.addFloor(
-      -patioW/2, halfD + patioD + i * 0.5,
-      patioW/2, halfD + patioD + 0.5 + i * 0.5,
-      (3 - i) * stepH
+    const left = new THREE.Mesh(new THREE.BoxGeometry(0.08, h + 0.15, 0.14), frameMat);
+    left.position.set(-w / 2 - 0.04, 0, 0);
+    grp.add(left);
+    const right = left.clone();
+    right.position.x = w / 2 + 0.04;
+    grp.add(right);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(w + 0.24, 0.1, 0.14), frameMat);
+    top.position.set(0, h / 2 + 0.05, 0);
+    grp.add(top);
+
+    // Leaf swung open flat against the wall
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(w * 0.94, h, 0.06), new THREE.MeshLambertMaterial({ color }));
+    leaf.position.set(-w / 2, 0, -w / 2 + 0.03);
+    leaf.rotation.y = Math.PI / 2;
+    grp.add(leaf);
+
+    const handle = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), new THREE.MeshLambertMaterial({ color: 0xC9A227 }));
+    handle.position.set(-w / 2 + 0.05, 0, -w * 0.9 + 0.03);
+    grp.add(handle);
+
+    grp.position.set(x, y, z);
+    grp.rotation.y = ry || 0;
+    grp.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    group.add(grp);
+    return grp;
+  }
+
+  // Front door (exterior, slightly different frame color)
+  function buildFrontDoor(x, y, z, ry, w, h, color) {
+    const grp = new THREE.Group();
+    const frameMat = new THREE.MeshLambertMaterial({ color: 0x4A3520 });
+
+    const left = new THREE.Mesh(new THREE.BoxGeometry(0.1, h + 0.2, 0.18), frameMat);
+    left.position.set(-w / 2 - 0.05, 0, 0);
+    grp.add(left);
+    const right = left.clone();
+    right.position.x = w / 2 + 0.05;
+    grp.add(right);
+    const topF = new THREE.Mesh(new THREE.BoxGeometry(w + 0.3, 0.12, 0.18), frameMat);
+    topF.position.set(0, h / 2 + 0.06, 0);
+    grp.add(topF);
+
+    const leaf = new THREE.Mesh(new THREE.BoxGeometry(w * 0.96, h, 0.08), new THREE.MeshLambertMaterial({ color }));
+    leaf.position.set(-w / 2, 0, -w / 2 + 0.04);
+    leaf.rotation.y = Math.PI / 2;
+    grp.add(leaf);
+
+    const handle = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), new THREE.MeshLambertMaterial({ color: 0xC9A227 }));
+    handle.position.set(-w / 2 + 0.06, 0, -w * 0.92 + 0.04);
+    grp.add(handle);
+
+    grp.position.set(x, y, z);
+    grp.rotation.y = ry || 0;
+    grp.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+    group.add(grp);
+    return grp;
+  }
+
+  // =============================================
+  // HOUSE SHELL
+  // =============================================
+  // Floor slab
+  box(15.4, 0.2, 10.4, 0xC9BFA8, -2.5, -0.1, 0, { collide: false });
+  collisionSystem.addFloor(-10.2, -5.2, 5.2, 5.2, 0.0);
+
+  // Roof
+  box(15.6, 0.3, 10.6, 0x8B7355, -2.5, WALL_H + 0.15, 0, { collide: false });
+  box(15.6, 0.4, 0.3, 0x7A6545, -2.5, WALL_H + 0.45, 5.15, { collide: false });
+  box(15.6, 0.4, 0.3, 0x7A6545, -2.5, WALL_H + 0.45, -5.15, { collide: false });
+  box(0.3, 0.4, 10.6, 0x7A6545, 5.15, WALL_H + 0.45, 0, { collide: false });
+  box(0.3, 0.4, 10.6, 0x7A6545, -10.15, WALL_H + 0.45, 0, { collide: false });
+
+  // Chimney
+  box(1, 3, 1, 0x8B7355, 2, WALL_H + 1.5, -3.5, { collide: false });
+
+  // Ceiling
+  box(15.4, 0.15, 10.4, 0xF0EBDD, -2.5, WALL_H, 0, { collide: false, recv: false });
+
+  // ---- Exterior Walls ----
+  // Back wall (z = -5), full length
+  box(15.4, WALL_H, 0.2, wallColor, -2.5, WALL_H / 2, -5);
+
+  // Front wall (z = 5): garage door opening + front door opening
+  box(0.5, WALL_H, 0.2, wallColorSide, -9.75, WALL_H / 2, 5);
+  box(0.5, WALL_H, 0.2, wallColorSide, -5.25, WALL_H / 2, 5);
+  box(2.5, 0.6, 0.2, wallColorSide, -7.5, WALL_H - 0.3, 5, { collide: false }); // header above garage door
+  box(4.4, WALL_H, 0.2, wallColor, -2.95, WALL_H / 2, 5);      // between garage and front door
+  box(4.2, WALL_H, 0.2, wallColor, 2.9, WALL_H / 2, 5);         // right of front door
+  box(DOOR_W + 0.4, 0.8, 0.2, wallColor, 0, WALL_H - 0.4, 5, { collide: false }); // header above front door
+
+  // Right wall (x = 5)
+  box(0.2, WALL_H, 10, wallColor, 5, WALL_H / 2, 0);
+
+  // Left wall (x = -10), garage end
+  box(0.2, WALL_H, 10, wallColorSide, -10, WALL_H / 2, 0);
+
+  // Visible front door, propped open (centered at x=0)
+  buildFrontDoor(0, DOOR_H / 2, 5.05, 0, DOOR_W, DOOR_H, 0x6B4226);
+
+  // Window glass panes
+  windowPane(5.02, 1.8, 2, Math.PI / 2, 1.6, 1.3);
+  windowPane(5.02, 1.8, -2, Math.PI / 2, 1.6, 1.3);
+  windowPane(-2, 1.8, -5.02, 0, 1.6, 1.3);
+  windowPane(2, 1.8, -5.02, 0, 1.6, 1.3);
+  windowPane(-10.02, 1.8, -1, Math.PI / 2, 1.4, 1.2);
+  windowPane(-3.5, 1.9, 5.02, 0, 1.2, 1.1);
+  windowPane(3.5, 1.9, 5.02, 0, 1.2, 1.1);
+
+  // Porch steps
+  box(3, 0.15, 0.6, 0xC0A882, 0, 0.075, 5.9, { collide: false });
+  box(2.4, 0.15, 0.6, 0xB8A07A, 0, 0.22, 6.45, { collide: false });
+
+  // =============================================
+  // INTERIOR DIVIDERS WITH DOORS
+  // =============================================
+  // Garage <-> Living room (x = -5), doorway z -2..2
+  box(0.15, WALL_H, 3, 0xE8E0CC, -5, WALL_H / 2, -3.5);
+  box(0.15, WALL_H, 3, 0xE8E0CC, -5, WALL_H / 2, 3.5);
+  buildDoor(-5, 1.2, -2, Math.PI / 2, 1.6, 2.4, 0xA0876A);
+
+  // Living room <-> Kitchen/Bedroom (z = 1), doorway x -2.5..2.5
+  box(2.5, WALL_H, 0.15, 0xE8E0CC, -3.75, WALL_H / 2, 1);
+  box(2.5, WALL_H, 0.15, 0xE8E0CC, 3.75, WALL_H / 2, 1);
+  buildDoor(-2.5, 1.2, 1, 0, 1.6, 2.4, 0xA0876A);
+
+  // Kitchen <-> Bedroom (x = 0), doorway z -3..0
+  box(0.15, WALL_H, 1.7, 0xE8E0CC, 0, WALL_H / 2, -4.15);
+  box(0.15, WALL_H, 0.7, 0xE8E0CC, 0, WALL_H / 2, 0.65);
+  buildDoor(0, 1.2, -3.15, Math.PI / 2, 1.6, 2.4, 0xA0876A);
+
+  // Bathroom nook walls
+  box(1.3, WALL_H * 0.72, 0.1, 0xCFE8E0, 4.35, WALL_H * 0.36, -3);
+  box(0.1, WALL_H * 0.72, 2, 0xCFE8E0, 3, WALL_H * 0.36, -4);
+  buildDoor(3.7, 1.1, -3, 0, 1.1, 2.0, 0xCFE8E0);
+
+  // =============================================
+  // LIVING ROOM (x -5..5, z 1..5)
+  // =============================================
+  planeFloor(4.6, 3.6, 0xB5453A, -2.6, 0.011, 3.1); // rug
+
+  box(2.4, 0.7, 0.95, 0x35506B, -4.3, 0.35, 4.3, { collide: true }); // sofa
+  box(0.85, 0.9, 0.95, 0x2C435C, -4.3, 0.45, 3.85, { collide: false, recv: false }); // back cushion
+  box(0.28, 0.5, 0.95, 0xE8D8B0, -3.15, 0.25, 4.3, { collide: true }); // armrest
+  box(0.28, 0.5, 0.95, 0xE8D8B0, -5.45, 0.25, 4.3, { collide: true });
+
+  box(1.3, 0.35, 0.65, 0x6B4423, -3.6, 0.18, 2.9, { collide: true }); // coffee table
+
+  box(1.6, 0.5, 0.4, 0x3A2A1A, -2.6, 0.25, 1.45, { collide: true }); // TV stand
+  box(1.4, 0.85, 0.07, 0x111111, -2.6, 1.05, 1.27, { collide: false }); // TV
+
+  box(0.32, 2.1, 1.4, 0x6B4423, -5.55, 1.05, 2.0, { collide: true }); // bookshelf
+  for (let i = 0; i < 4; i++) box(0.27, 0.04, 1.3, 0x8B6F47, -5.55, 0.3 + i * 0.52, 2.0, { collide: false, cast: false });
+
+  cyl(0.04, 0.04, 1.6, 8, 0x222222, -1.3, 0.8, 4.5, { collide: true }); // floor lamp pole
+  cyl(0.3, 0.2, 0.35, 10, 0xE8D8A8, -1.3, 1.65, 4.5, { collide: false }); // lamp shade
+
+  box(0.05, 0.8, 1.0, 0x222222, -5.9, 1.9, 3.2, { ry: Math.PI / 2, collide: false }); // wall art
+
+  // Accent chairs near the hallway
+  cyl(0.32, 0.32, 0.7, 10, 0x7A3B2E, 1.4, 0.35, 3.6, { collide: true });
+  cyl(0.32, 0.32, 0.7, 10, 0x7A3B2E, 1.4, 0.35, 4.7, { collide: true });
+
+  // =============================================
+  // KITCHEN (x -5..0, z -5..1)
+  // =============================================
+  planeFloor(4.6, 3.5, 0xE2DCC8, -2.6, 0.011, -3.2); // floor
+
+  box(4.5, 0.9, 0.7, 0xEDEDE8, -3.4, 0.45, -4.55, { collide: true }); // counter run
+  box(0.7, 0.9, 2.6, 0xEDEDE8, -5.55, 0.45, -3.3, { collide: true });
+  box(4.5, 0.06, 0.75, 0x444444, -3.4, 0.93, -4.55, { collide: false });
+  box(0.75, 0.06, 2.6, 0x444444, -5.55, 0.93, -3.3, { collide: false });
+
+  box(0.8, 0.05, 0.6, 0x222222, -1.8, 0.94, -4.55, { collide: false, cast: false }); // stove
+  box(0.6, 0.1, 0.45, 0xAAAAAA, -3.2, 0.95, -4.55, { collide: false, cast: false }); // sink
+
+  box(0.9, 1.8, 0.8, 0xE6E6E6, -1.0, 0.9, -4.6, { collide: true }); // fridge
+
+  box(1.5, 0.9, 0.9, 0xD8C9A3, -2.6, 0.45, -2.0, { collide: true }); // island
+  box(1.5, 0.06, 0.9, 0x3A3A3A, -2.6, 0.93, -2.0, { collide: false });
+
+  cyl(0.17, 0.17, 0.55, 10, 0x333333, -2.05, 0.28, -1.1, { collide: true }); // bar stools
+  cyl(0.17, 0.17, 0.55, 10, 0x333333, -3.15, 0.28, -1.1, { collide: true });
+
+  box(1.5, 0.08, 0.85, 0x6B4423, -4.4, 0.75, -1.8, { collide: true }); // dining table
+  cyl(0.06, 0.06, 0.7, 8, 0x4A2E12, -4.95, 0.38, -2.1, { collide: false });
+  cyl(0.06, 0.06, 0.7, 8, 0x4A2E12, -3.85, 0.38, -2.1, { collide: false });
+  cyl(0.06, 0.06, 0.7, 8, 0x4A2E12, -4.95, 0.38, -1.5, { collide: false });
+  cyl(0.06, 0.06, 0.7, 8, 0x4A2E12, -3.85, 0.38, -1.5, { collide: false });
+
+  cyl(0.1, 0.15, 0.2, 10, 0xE8C77A, -2.6, 2.6, -2.0, { collide: false }); // pendant light
+
+  // =============================================
+  // BEDROOM & BATHROOM (x 0..5, z -5..1)
+  // =============================================
+  planeFloor(5, 5.5, 0xC9B8D8, 2.4, 0.011, -1.5); // floor
+
+  box(2, 0.5, 2.6, 0x4A3A6B, 1.0, 0.25, -1.9, { collide: true }); // bed
+  box(2, 0.3, 0.5, 0xEEEEEE, 1.0, 0.6, -3.1, { collide: false }); // pillows
+  box(2.1, 0.7, 0.15, 0x6B5A8B, 1.0, 0.6, -3.2, { collide: false }); // headboard
+
+  box(0.5, 0.5, 0.5, 0x5A4530, -0.2, 0.25, -3.1, { collide: true }); // nightstands
+  box(0.5, 0.5, 0.5, 0x5A4530, 2.2, 0.25, -3.1, { collide: true });
+
+  box(1.4, 2.2, 0.6, 0x6B4423, 4.6, 1.1, -1.7, { collide: true }); // wardrobe
+
+  box(1.4, 0.06, 0.7, 0x8B6F47, 4.5, 0.75, -0.5, { collide: true }); // desk
+  box(0.06, 0.75, 0.06, 0x5A4530, 3.9, 0.37, -0.2, { collide: false });
+  box(0.06, 0.75, 0.06, 0x5A4530, 5.1, 0.37, -0.2, { collide: false });
+  cyl(0.25, 0.25, 0.5, 10, 0x222222, 4.5, 0.25, 0.25, { collide: true }); // desk chair
+
+  planeFloor(2.6, 3, 0xE8D8B0, 1.0, 0.012, -1.9); // rug under bed
+
+  // Bathroom nook
+  planeFloor(1.9, 1.9, 0xCFE8E0, 4, 0.011, -4);
+  box(0.5, 0.55, 0.4, 0xFFFFFF, 4.55, 0.28, -4.6, { collide: true }); // toilet
+  cyl(0.25, 0.25, 0.1, 12, 0xFFFFFF, 4.55, 0.6, -4.6, { collide: false });
+  box(0.7, 0.7, 0.5, 0xFFFFFF, 3.5, 0.35, -4.6, { collide: true }); // sink
+  box(0.6, 0.04, 0.45, 0xDDEEEE, 3.5, 0.72, -4.6, { collide: false });
+
+  // =============================================
+  // GARAGE (x -10..-5, z -5..5)
+  // =============================================
+  planeFloor(5, 10, 0x9A9A9A, -7.5, 0.011, 0); // floor
+
+  // Car inside garage (moved back, clear of doorway)
+  const carGrp = createSportsCar(0x224488); // Blue sports car
+  carGrp.rotation.y = Math.PI / 2;
+  carGrp.position.set(-7.5, 0, -2.5);
+  group.add(carGrp);
+  collisionSystem.addWall(-8.4, -4.3, -6.6, -0.7, 0, 1.7);
+
+  box(2, 1.8, 0.4, 0x5A5A5A, -9.6, 0.9, -4.3, { collide: true }); // tool shelf
+  box(1.8, 0.85, 0.6, 0x6B4423, -9.5, 0.42, 3.5, { collide: true }); // workbench
+
+  // =============================================
+  // CEILING LIGHTS
+  // =============================================
+  const ceilLights = [];
+  function ceilLight(x, z) {
+    const fix = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.25, 0.25, 0.08, 12),
+      new THREE.MeshLambertMaterial({ color: 0xFFF4D6 })
     );
+    fix.position.set(x, WALL_H - 0.05, z);
+    group.add(fix);
+    const pl = new THREE.PointLight(0xFFF0D0, 0.9, 7);
+    pl.position.set(x, WALL_H - 0.2, z);
+    group.add(pl);
+    ceilLights.push(pl);
   }
 
-  // ===== STAIRCASE (Interior) =====
-  const stairMat = MaterialFactory.marble();
-  const stairCount = 16;
-  const stairW = 4; // Wider stairs
-  const stairD = 0.35;
-  const stairH = (FH - 0.15) / stairCount; // Height to reach second floor
-  const stairStartZ = -0.5; // Start near the front door hallway
-  
-  // The stairs
-  for (let i = 0; i < stairCount; i++) {
-    const step = new THREE.Mesh(new THREE.BoxGeometry(stairW, stairH, stairD), stairMat);
-    step.position.set(0, 0.15 + stairH * (i + 0.5), stairStartZ + i * stairD);
-    step.castShadow = true;
-    step.receiveShadow = true;
-    group.add(step);
-    
-    // Stair collision ramp
-    collisionSystem.addFloor(
-      -stairW / 2, stairStartZ + i * stairD - stairD / 2,
-      stairW / 2, stairStartZ + i * stairD + stairD / 2,
-      0.15 + stairH * (i + 1)
-    );
-  }
+  ceilLight(-2.6, 3.1);   // Living room
+  ceilLight(-2.6, -3.2);  // Kitchen
+  ceilLight(2.4, -1.5);   // Bedroom
+  ceilLight(-7.5, 0);     // Garage
 
-  // Stair railings
-  const railMat = MaterialFactory.metal();
-  const railGeo = new THREE.BoxGeometry(0.04, 1.0, stairCount * stairD);
-  [-1, 1].forEach(side => {
-    const rail = new THREE.Mesh(railGeo, railMat);
-    rail.position.set(side * (stairW / 2 - 0.1), (FH - 0.15) / 2 + 0.5 + 0.15, stairStartZ + stairCount * stairD / 2 - stairD / 2);
-    rail.rotation.x = -Math.atan2(FH - 0.15, stairCount * stairD); // Negative to slope UP
-    group.add(rail);
-  });
-
-  // Second Floor Stairwell Safety Glass Railings
-  // Left and Right rails alongside the hole
-  const safeRailGeoL = new THREE.BoxGeometry(0.05, 1.2, 6);
-  const safeRailL = new THREE.Mesh(safeRailGeoL, glassMat);
-  safeRailL.position.set(-2, FH + 0.6, 2);
-  group.add(safeRailL);
-
-  const safeRailR = new THREE.Mesh(safeRailGeoL, glassMat);
-  safeRailR.position.set(2, FH + 0.6, 2);
-  group.add(safeRailR);
-
-  // Back railing (placed at z = 5.0 to align with the edge of the hole, not blocking the stairs)
-  const safeRailGeoB = new THREE.BoxGeometry(4, 1.2, 0.05);
-  const safeRailB = new THREE.Mesh(safeRailGeoB, glassMat);
-  safeRailB.position.set(0, FH + 0.6, 5.0);
-  group.add(safeRailB);
-
-  // ===== COLLISION REGISTRATION =====
-  // Exterior walls
-  collisionSystem.addWall(-halfW - WT, -halfD - WT, -halfW, halfD + WT, 0, FH * 2); // Left
-  collisionSystem.addWall(halfW, -halfD - WT, halfW + WT, halfD + WT, 0, FH * 2);   // Right
-  
-  // Front wall with door gap (center 4 units open -> x: -2 to 2)
-  collisionSystem.addWall(-halfW, -halfD - WT, -2, -halfD, 0, FH * 2); // Front Left
-  collisionSystem.addWall(2, -halfD - WT, halfW, -halfD, 0, FH * 2);   // Front Right
-  
-  // Back wall with patio gap (center 14 units open -> x: -7 to 7)
-  collisionSystem.addWall(-halfW, halfD, -7, halfD + WT, 0, FH * 2);   // Back Left
-  collisionSystem.addWall(7, halfD, halfW, halfD + WT, 0, FH * 2);     // Back Right
-  
-  // Interior walls (simplified — main dividers)
-  collisionSystem.addWall(-3 - WT/2, -halfD, -3 + WT/2, -2, 0, FH);  // Left Hallway
-  collisionSystem.addWall(3 - WT/2, -halfD, 3 + WT/2, -2, 0, FH);    // Right Hallway
-  
-  collisionSystem.addWall(-halfW, 2 - WT/2, -3, 2 + WT/2, 0, FH * 2);  // Cross left
-  collisionSystem.addWall(3, 2 - WT/2, halfW, 2 + WT/2, 0, FH * 2);    // Cross right
-
-  // Second floor safety railings collision
-  collisionSystem.addWall(-2.2, -1, -1.8, 4, FH, FH + 1.2); // Left rail
-  collisionSystem.addWall(1.8, -1, 2.2, 4, FH, FH + 1.2);   // Right rail
-  collisionSystem.addWall(-2, 3.8, 2, 4.2, FH, FH + 1.2);   // Back rail
+  // Porch light
+  const porchLight = new THREE.PointLight(0xFFDDAA, 1.2, 8);
+  porchLight.position.set(0, 3.0, 5.2);
+  group.add(porchLight);
 
   scene.add(group);
-  return group;
+  return { group, ceilLights };
 }
