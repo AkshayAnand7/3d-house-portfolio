@@ -17,7 +17,6 @@ export class InputManager {
     document.addEventListener('keyup', this._onKeyUp);
     document.addEventListener('mousemove', this._onMouseMove);
     document.addEventListener('pointerlockchange', this._onPointerLockChange);
-    document.addEventListener('mousedown', this._onMouseDown);
   }
 
   _onKeyDown(e) {
@@ -35,11 +34,7 @@ export class InputManager {
     }
   }
 
-  _onMouseDown() {
-    if (!this.mouse.locked) {
-      document.body.requestPointerLock();
-    }
-  }
+
 
   _onPointerLockChange() {
     this.mouse.locked = document.pointerLockElement === document.body;

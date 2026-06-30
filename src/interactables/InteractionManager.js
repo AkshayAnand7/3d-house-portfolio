@@ -19,7 +19,12 @@ export class InteractionManager {
     
     this.closeBtn.addEventListener('click', () => this.closePanel());
     document.addEventListener('keydown', (e) => {
-      if (e.code === 'Escape' && this.panelOpen) this.closePanel();
+      if (e.code === 'Escape' && this.panelOpen) {
+        this.closePanel();
+      }
+      if (e.code === 'KeyE' && this.activeInteractable && !this.panelOpen) {
+        this.openPanel(this.activeInteractable.contentKey);
+      }
     });
   }
 
@@ -50,9 +55,7 @@ export class InteractionManager {
       this.promptEl.style.display = 'flex';
       this.promptText.textContent = closest.label;
       
-      if (this.input.isKeyOnce('KeyE')) {
-        this.openPanel(closest.contentKey);
-      }
+
     } else {
       this.activeInteractable = null;
       this.promptEl.style.display = 'none';
