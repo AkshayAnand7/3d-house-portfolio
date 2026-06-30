@@ -76,6 +76,7 @@ export class InteractionManager {
     this.panelOpen = false;
     this.panelEl.style.display = 'none';
     this.panelBody.innerHTML = '';
+    document.body.requestPointerLock();
   }
 
   getContentHTML(key) {

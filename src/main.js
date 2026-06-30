@@ -216,6 +216,14 @@ async function init() {
     if (!isGameStarted && loadProgress >= 100) startGame();
   });
 
+  // Re-lock pointer on click when panel is closed and game is active
+  document.addEventListener('click', (e) => {
+    if (!isGameStarted || interactionManager.panelOpen) return;
+    const panel = document.getElementById('content-panel');
+    if (panel && panel.contains(e.target)) return;
+    inputManager.lockPointer();
+  });
+
   isInitDone = true;
 }
 

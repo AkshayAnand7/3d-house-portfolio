@@ -67,6 +67,5 @@ export class InputManager {
     document.removeEventListener('keyup', this._onKeyUp);
     document.removeEventListener('mousemove', this._onMouseMove);
     document.removeEventListener('pointerlockchange', this._onPointerLockChange);
-    document.removeEventListener('mousedown', this._onMouseDown);
   }
 }
