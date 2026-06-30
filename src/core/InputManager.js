@@ -11,7 +11,6 @@ export class InputManager {
     this._onKeyUp = this._onKeyUp.bind(this);
     this._onMouseMove = this._onMouseMove.bind(this);
     this._onPointerLockChange = this._onPointerLockChange.bind(this);
-    this._onMouseDown = this._onMouseDown.bind(this);
 
     document.addEventListener('keydown', this._onKeyDown);
     document.addEventListener('keyup', this._onKeyUp);
