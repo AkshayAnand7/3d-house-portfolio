@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akshay Anand M P — GTA Portfolio</title>
+  <meta name="description" content="Explore Akshay Anand M P's portfolio through an interactive GTA-style luxury villa experience. Discover skills, projects, and achievements in 3D." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading-screen">
+    <div class="loading-content">
+      <div class="loading-logo">
+        <span class="logo-gta">GTA</span>
+        <span class="logo-divider">:</span>
+        <span class="logo-subtitle">PORTFOLIO</span>
+      </div>
+      <h1 class="loading-name">AKSHAY ANAND M P</h1>
+      <div class="loading-roles">
+        <span>Full Stack Developer</span>
+        <span class="role-dot">•</span>
+        <span>Web Developer</span>
+        <span class="role-dot">•</span>
+        <span>Prompt Engineer</span>
+      </div>
+      <div class="loading-bar-container">
+        <div class="loading-bar" id="loading-bar"></div>
+      </div>
+      <p class="loading-tip" id="loading-tip">Constructing luxury villa...</p>
+      <p class="loading-enter" id="loading-enter" style="display:none;">CLICK TO ENTER</p>
+    </div>
+    <div class="loading-footer">
+      <p>WASD — Move &nbsp;|&nbsp; SHIFT — Sprint &nbsp;|&nbsp; SPACE — Jump &nbsp;|&nbsp; E — Interact &nbsp;|&nbsp; V — Camera Mode</p>
+    </div>
+  </div>
+
+  <!-- Game HUD -->
+  <div id="hud" style="display:none;">
+    <div id="hud-room-name" class="hud-room">EXTERIOR</div>
+    <div id="hud-minimap" class="hud-minimap">
+      <canvas id="minimap-canvas" width="180" height="180"></canvas>
+      <div class="minimap-label">MINIMAP</div>
+    </div>
+    <div id="hud-collectibles" class="hud-collectibles">
+      <span class="collectible-icon">★</span>
+      <span id="collectible-count">0</span>/3
+    </div>
+    <div id="hud-controls" class="hud-controls">
+      <span>WASD Move</span>
+      <span>SHIFT Sprint</span>
+      <span>SPACE Jump</span>
+      <span>E Interact</span>
+      <span>V Camera</span>
+      <span>ESC Menu</span>
+    </div>
+  </div>
+
+  <!-- Interaction Prompt -->
+  <div id="interaction-prompt" style="display:none;">
+    <div class="prompt-key">E</div>
+    <div class="prompt-text" id="prompt-text">Interact</div>
+  </div>
+
+  <!-- Content Panel -->
+  <div id="content-panel" style="display:none;">
+    <button id="content-close" class="content-close-btn">✕</button>
+    <div id="content-body" class="content-body"></div>
+  </div>
+
+  <!-- Crosshair (first person) -->
+  <div id="crosshair" style="display:none;">+</div>
+
+  <!-- Canvas Container -->
+  <div id="canvas-container"></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
