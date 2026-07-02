@@ -4,17 +4,15 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Akshay Anand M P — 3D Portfolio</title>
-  <meta name="description" content="Explore Akshay Anand M P's portfolio through an interactive GTA-style luxury villa experience. Discover skills, projects, and achievements in 3D." />
+  <meta name="description" content="Explore Akshay Anand M P's portfolio through an interactive 3D luxury villa experience. Discover skills, projects, and achievements." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Inter:wght@300;400;500;600&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/src/styles.css" />
 </head>
 <body>
   <!-- Loading Screen -->
   <div id="loading-screen">
     <div class="loading-content">
-      <!-- Removed GTA Logo -->
       <h1 class="loading-name">AKSHAY ANAND M P</h1>
       <div class="loading-roles">
         <span>Full Stack Developer</span>
@@ -37,14 +35,6 @@
   <!-- Game HUD -->
   <div id="hud" style="display:none;">
     <div id="hud-room-name" class="hud-room">EXTERIOR</div>
-    <div id="hud-minimap" class="hud-minimap">
-      <canvas id="minimap-canvas" width="180" height="180"></canvas>
-      <div class="minimap-label">MINIMAP</div>
-    </div>
-    <div id="hud-collectibles" class="hud-collectibles">
-      <span class="collectible-icon">★</span>
-      <span id="collectible-count">0</span>/3
-    </div>
     <div id="hud-controls" class="hud-controls">
       <span>WASD Move</span>
       <span>SHIFT Sprint</span>
@@ -73,6 +63,6 @@
   <!-- Canvas Container -->
   <div id="canvas-container"></div>
 
-  <script type="module" src="/src/main.js"></script>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>

@@ -1,11 +1,82 @@
-// ============================================
-// Configuration & Portfolio Data
-// ============================================
+/**
+ * Portfolio Data — All personal data in one typed location.
+ *
+ * Migrated from config.js. Separated from engine configuration
+ * so content changes never touch engine code.
+ */
 
-export const PORTFOLIO = {
+// ---- Types ----
+
+export interface SkillItem {
+  name: string;
+  level: number;
+}
+
+export interface SkillCategory {
+  title: string;
+  items: SkillItem[];
+}
+
+export interface Project {
+  title: string;
+  description: string;
+  tech: string[];
+  color: string;
+}
+
+export interface Achievement {
+  title: string;
+  issuer: string;
+  description: string;
+}
+
+export interface TimelineEntry {
+  phase: string;
+  period: string;
+  description: string;
+  icon: string;
+}
+
+export interface TechCategory {
+  title: string;
+  items: string[];
+}
+
+export interface ContactLink {
+  url: string;
+  label: string;
+  icon: string;
+}
+
+export interface Portfolio {
+  name: string;
+  roles: string[];
+  about: {
+    title: string;
+    description: string;
+    story: string;
+  };
+  skills: Record<string, SkillCategory>;
+  projects: Project[];
+  achievements: Achievement[];
+  timeline: TimelineEntry[];
+  techShowcase: Record<string, TechCategory>;
+  learning: { title: string; short: string; color: string }[];
+  contact: Record<string, ContactLink>;
+  secretRoom: {
+    funFacts: string[];
+    devSetup: string;
+    futureProjects: string[];
+    hiddenAchievements: string[];
+  };
+}
+
+// ---- Data ----
+
+export const PORTFOLIO: Portfolio = {
   name: 'Akshay Anand M P',
   roles: ['Full Stack Developer', 'Web Developer', 'Prompt Engineer'],
-  
+
   about: {
     title: 'CAREER OBJECTIVE',
     description: `Aspiring Full Stack and Web Developer with a strong interest in Prompt Engineering. Passionate about building efficient and scalable applications, and eager to apply programming, web development, and problem-solving skills in real-world projects.`,
@@ -19,7 +90,7 @@ export const PORTFOLIO = {
         { name: 'HTML', level: 90 },
         { name: 'CSS', level: 85 },
         { name: 'JavaScript', level: 80 },
-      ]
+      ],
     },
     backend: {
       title: 'Languages',
@@ -27,20 +98,20 @@ export const PORTFOLIO = {
         { name: 'C', level: 80 },
         { name: 'Java', level: 75 },
         { name: 'Python', level: 85 },
-      ]
+      ],
     },
     database: {
       title: 'Databases',
       items: [
         { name: 'MySQL', level: 80 },
-      ]
+      ],
     },
     devops: {
       title: 'Tools',
       items: [
         { name: 'GitHub', level: 85 },
         { name: 'Excel', level: 90 },
-      ]
+      ],
     },
   },
 
@@ -139,90 +210,3 @@ export const PORTFOLIO = {
     hiddenAchievements: ['100+ GitHub contributions', 'Hackathon Finalist', 'Open Source Contributor'],
   },
 };
-
-// ============================================
-// Scene Configuration
-// ============================================
-
-export const COLORS = {
-  sun: 0xFFB366,
-  sunLight: 0xFFD4A6,
-  sky: 0x1a0a2e,
-  skyHorizon: 0xFF6B35,
-  ambient: 0x404060,
-  fog: 0x1a0a2e,
-  
-  // Materials
-  whiteWall: 0xf5f0e8,
-  wood: 0x8B6914,
-  woodDark: 0x5C4033,
-  glass: 0xadd8e6,
-  marble: 0xf0ece4,
-  metal: 0x2a2a2a,
-  metalGate: 0x1a1a1a,
-  grass: 0x2d5a1e,
-  grassLight: 0x3a7a28,
-  road: 0x2a2a2a,
-  sidewalk: 0xc0b8a8,
-  driveway: 0x8a8078,
-  poolWater: 0x0066cc,
-  poolLight: 0x00aaff,
-  carBody: 0x1a1a1a,
-  carAccent: 0xff3300,
-  roofTop: 0x3a3a3a,
-  
-  // Room accents
-  rgbPink: 0xff00aa,
-  rgbCyan: 0x00ffcc,
-  rgbPurple: 0xaa00ff,
-  neonBlue: 0x0088ff,
-  gold: 0xffd700,
-};
-
-export const HOUSE = {
-  width: 15.4,
-  depth: 10.4,
-  floorHeight: 3.2,
-  wallThickness: 0.2,
-  position: { x: -2.5, y: 0, z: 0 },
-};
-
-export const ROOMS = {
-  livingRoom: { x: -2.3, z: 3, w: 5, d: 4, floor: 0, label: 'LIVING ROOM' },
-  kitchen: { x: -2.3, z: -3.2, w: 5, d: 6, floor: 0, label: 'KITCHEN' },
-  bedroom: { x: 2.4, z: -1.5, w: 5, d: 6, floor: 0, label: 'BEDROOM' },
-  garage: { x: -7.5, z: 0, w: 5, d: 10, floor: 0, label: 'GARAGE' },
-};
-
-export const PLAYER = {
-  height: 1.65,
-  radius: 0.32,
-  walkSpeed: 3.0,
-  runSpeed: 5.5,
-  jumpForce: 5,
-  gravity: -15,
-  spawnPosition: { x: 0, y: 0, z: 8.5 },
-};
-
-export const CAMERA = {
-  thirdPersonDistance: 3.5,
-  thirdPersonHeight: 2.0,
-  fov: 62,
-  near: 0.05,
-  far: 200,
-  sensitivity: 0.002,
-  smoothing: 1.0,
-};
-
-export const LOADING_TIPS = [
-  'Constructing luxury villa...',
-  'Planting garden trees...',
-  'Polishing marble floors...',
-  'Parking the supercar...',
-  'Setting up the office...',
-  'Tuning RGB lights...',
-  'Filling the pool...',
-  'Hanging certificates...',
-  'Stocking the library...',
-  'Hiding collectibles...',
-];
